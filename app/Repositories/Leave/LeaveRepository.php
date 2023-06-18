@@ -17,13 +17,4 @@ class LeaveRepository extends BaseRepository implements LeaveRepositoryInterface
         return Leaves::class;
     }
 
-    /**
-     * get blog
-     * @return mixed
-     */
-    public function getBlog()
-    {
-        return $this->model->select('title')->get();
-    }
-
 }
