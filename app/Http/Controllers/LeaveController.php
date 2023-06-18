@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Leaves;
+use App\Repositories\Leave\LeaveRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Resources\LeaveResources;
@@ -14,11 +14,12 @@ class LeaveController extends Controller
     const LUNCH_START_HOUR = 12;
     const LUNCH_END_HOUR = 13;
     const WEEKENDS = [Carbon::SATURDAY, Carbon::SUNDAY];
-    private $leaves;
+    protected $leaves;
+    protected $leaveRepo;
 
-    public function __construct(Leaves $leaves)
+    public function __construct(LeaveRepository $leaveRepo)
     {
-        $this->leaves = $leaves;
+        $this->leaveRepo = $leaveRepo;
     }
 
     /**
@@ -31,7 +32,7 @@ class LeaveController extends Controller
         if ($param) {
             $employees = $this->leaves->where('reason', 'like', '%' . $param . '%')->get();
         } else {
-            $employees = $this->leaves->all();
+            $employees = $this->leaveRepo->getAll();
         }
 
         if ($employees->isEmpty()) {
@@ -48,7 +49,7 @@ class LeaveController extends Controller
     {
         $data = $request->all();
         $data['estimate'] = $this->timeOff($request->start_date, $request->end_date);
-        return $this->leaves->create($data);
+        return $this->leaveRepo->create($data);
     }
 
     /**
@@ -56,7 +57,7 @@ class LeaveController extends Controller
      */
     public function show(string $id)
     {
-        return $this->leaves->findOrFail($id);
+        return $this->leaveRepo->find($id);
     }
 
     /**
@@ -64,8 +65,7 @@ class LeaveController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $leaves = $this->leaves->findOrFail($id);
-        $leaves->update($request->all());
+        $leaves = $this->leaveRepo->update($id,$request->all());
         return $leaves;
     }
 
@@ -74,8 +74,7 @@ class LeaveController extends Controller
      */
     public function destroy(string $id)
     {
-        $leaves = $this->leaves->findOrFail($id);
-        $leaves->delete();
+        $this->leaveRepo->delete($id);
         return response()->json(['message' => 'Leave deleted']);
     }
 
