@@ -21,7 +21,8 @@ class Leaves extends Model
         'end_date',
         'reason',
         'comment',
-        'status'
+        'status',
+
     ];
 
     public function employees(){
