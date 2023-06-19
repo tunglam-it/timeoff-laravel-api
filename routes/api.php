@@ -2,10 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\PostController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\EmployeesController;
-use App\Models\Post;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,35 +17,35 @@ use App\Models\Post;
 |
 */
 
-Route::post('/register', [EmployeesController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register']);
 
-Route::post('/login', [EmployeesController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login']);
 Route::group(['middleware' => ['jwt.auth', 'checkadmin']], function () {
-    Route::post('/refresh', [EmployeesController::class, 'refresh']);
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 
 });
 Route::group(['middleware' => 'jwt.auth'], function () {
-    Route::get('/profile', [EmployeesController::class, 'profile']);
-    Route::get('/add', [EmployeesController::class, 'create']);
-    Route::post('/change', [EmployeesController::class, 'change']);// thay doi password
+    Route::get('/profile', [AuthController::class, 'profile']);
+    Route::get('/show/{id}', [EmployeesController::class, 'show']);
+    Route::post('/change', [EmployeesController::class, 'changePassword']);// thay doi password
     Route::get('/users', [EmployeesController::class, 'getUsers']); // filter
-    Route::post('/logout', [EmployeesController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-
+    //Router Leaves
+    Route::get('/leaves', [LeaveController::class, 'index']);// search
+    Route::get('/leaves/{id}', [LeaveController::class, 'show']);
+    Route::post('/leaves', [LeaveController::class, 'store']);
+    Route::put('/leaves/{id}', [LeaveController::class, 'update']);
+    Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
 });
 
 Route::group(['middleware' => ['jwt.auth', 'check']], function () {
     Route::delete('/delete/{id}', [EmployeesController::class, 'delete']);
-    Route::get('/get-users',[PostController::class,'index']);
-    Route::put('/post/{id}', [PostController::class, 'update']);// cap nhat roles
+    Route::get('/get-users',[EmployeesController::class,'index']);
+    Route::put('/update/{id}', [EmployeesController::class, 'update']);// cap nhat roles
 });
 
-//Router Leaves
-Route::get('/leaves', [LeaveController::class, 'index']);// search
-Route::get('/leaves/{id}', [LeaveController::class, 'show']);
-Route::post('/leaves', [LeaveController::class, 'store']);
-Route::put('/leaves/{id}', [LeaveController::class, 'update']);
-Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
+
 
 
 

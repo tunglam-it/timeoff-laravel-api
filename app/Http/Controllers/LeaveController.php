@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employees;
+use App\Models\Leaves;
 use App\Repositories\Leave\LeaveRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -12,8 +14,9 @@ class LeaveController extends Controller
     const WORK_START_HOUR = 8;
     const WORK_END_HOUR = 17;
     const LUNCH_START_HOUR = 12;
-    const LUNCH_END_HOUR = 13;
+    const LUNCH_END_HOUR = 13.5;
     const WEEKENDS = [Carbon::SATURDAY, Carbon::SUNDAY];
+
     protected $leaves;
     protected $leaveRepo;
 
@@ -28,15 +31,26 @@ class LeaveController extends Controller
     public function index()
     {
         $param = request()->input('param');
+        $start_date = request()->input('start_date');
+        $end_date = request()->input('end_date');
+        $status = request()->input('status');
 
+        $leaves = Leaves::query();
         if ($param) {
-            $employees = $this->leaves->where('reason', 'like', '%' . $param . '%')->get();
-        } else {
-            $employees = $this->leaveRepo->getAll();
+            $leaves->whereHas('employees',function ($query) use ($param){
+                $query->where('name','like','%'.$param.'%');
+            });
+        }
+        if($start_date && $end_date){
+            $leaves->whereBetween('start_date',[$start_date,$end_date]);
+        }
+        if($status){
+            $leaves->where('status',$status);
         }
 
+        $employees = $leaves->get();
         if ($employees->isEmpty()) {
-            return response()->json(['message' => ' Employee not found'], 404);
+            return response()->json(['message' => ' Leaves not found'], 404);
         } else {
             return LeaveResources::collection($employees);
         }
@@ -49,6 +63,7 @@ class LeaveController extends Controller
     {
         $data = $request->all();
         $data['estimate'] = $this->timeOff($request->start_date, $request->end_date);
+//        dd($data['estimate']);
         return $this->leaveRepo->create($data);
     }
 
@@ -65,7 +80,13 @@ class LeaveController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $leaves = $this->leaveRepo->update($id,$request->all());
+        if ($request->status == 1 && $request->employee_id) {
+            $employee = Employees::findOrFail($request->employee_id);
+            $estimate = $this->leaveRepo->find($id)->estimate;
+            $total_time = $employee->total_time;
+            $employee->update(['total_time' => $total_time+$estimate]);
+        }
+        $leaves = $this->leaveRepo->update($id, $request->except('employee_id'));
         return $leaves;
     }
 
@@ -97,7 +118,6 @@ class LeaveController extends Controller
                 $start_time->addDay();
                 continue;
             }
-
             $start_hour = max($curr_day->copy()->hour(self::WORK_START_HOUR), $start_time);
             $end_hour = min($curr_day->copy()->hour(self::WORK_END_HOUR)->minute(30), $end_time);
             $lunch_start = $curr_day->copy()->hour(self::LUNCH_START_HOUR);

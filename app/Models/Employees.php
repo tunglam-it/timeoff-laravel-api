@@ -34,6 +34,7 @@ class Employees extends Authenticatable implements JWTSubject
         'email',
         'password',
         'roles',
+        'total_time'
     ];
 
     protected $table = 'employees' ;

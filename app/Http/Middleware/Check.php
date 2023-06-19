@@ -20,5 +20,5 @@ class Check
         }
         return $next($request);
         }
-    
+
 }
