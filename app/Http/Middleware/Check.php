@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Employees;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,7 +16,7 @@ class Check
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(auth()->user()->roles===2||auth()->user()->roles===1){
+        if(auth()->user()->roles== Employees::MANAGER_ROLE||auth()->user()->roles==Employees::USER_ROLE){
             return response()->json(['message'=>'you not have roles'],403);
         }
         return $next($request);

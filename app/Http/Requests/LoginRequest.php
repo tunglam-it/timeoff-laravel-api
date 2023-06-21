@@ -26,4 +26,11 @@ class LoginRequest extends FormRequest
             'password'=>'required|min:8'
         ];
     }
+
+    public function messages()
+    {
+        return[
+          'email.required'=>'Cần nhập email',
+        ];
+    }
 }

@@ -8,16 +8,10 @@ use App\Repositories\Leave\LeaveRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Resources\LeaveResources;
+use Illuminate\Support\Facades\Auth;
 
 class LeaveController extends Controller
 {
-    const WORK_START_HOUR = 8;
-    const WORK_END_HOUR = 17;
-    const LUNCH_START_HOUR = 12;
-    const LUNCH_END_HOUR = 13.5;
-    const WEEKENDS = [Carbon::SATURDAY, Carbon::SUNDAY];
-
-    protected $leaves;
     protected $leaveRepo;
 
     public function __construct(LeaveRepository $leaveRepo)
@@ -37,15 +31,15 @@ class LeaveController extends Controller
 
         $leaves = Leaves::query();
         if ($param) {
-            $leaves->whereHas('employees',function ($query) use ($param){
-                $query->where('name','like','%'.$param.'%');
+            $leaves->whereHas('employees', function ($query) use ($param) {
+                $query->where('name', 'like', '%' . $param . '%');
             });
         }
-        if($start_date && $end_date){
-            $leaves->whereBetween('start_date',[$start_date,$end_date]);
+        if ($start_date && $end_date) {
+            $leaves->whereBetween('start_date', [$start_date, $end_date]);
         }
-        if($status){
-            $leaves->where('status',$status);
+        if ($status) {
+            $leaves->where('status', $status);
         }
 
         $employees = $leaves->get();
@@ -63,7 +57,6 @@ class LeaveController extends Controller
     {
         $data = $request->all();
         $data['estimate'] = $this->timeOff($request->start_date, $request->end_date);
-//        dd($data['estimate']);
         return $this->leaveRepo->create($data);
     }
 
@@ -80,11 +73,11 @@ class LeaveController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        if ($request->status == 1 && $request->employee_id) {
+        if ($request->status == Leaves::APPROVE_STATUS && $request->employee_id) {
             $employee = Employees::findOrFail($request->employee_id);
             $estimate = $this->leaveRepo->find($id)->estimate;
             $total_time = $employee->total_time;
-            $employee->update(['total_time' => $total_time+$estimate]);
+            $employee->update(['total_time' => $total_time + $estimate]);
         }
         $leaves = $this->leaveRepo->update($id, $request->except('employee_id'));
         return $leaves;
@@ -99,52 +92,57 @@ class LeaveController extends Controller
         return response()->json(['message' => 'Leave deleted']);
     }
 
-    /****
-     * Calculate timeoff
-     * @param Carbon $start_time
-     * @param Carbon $end_time
+    /***
+     * calculate time
+     * @param $start
+     * @param $end
      * @return float|int
      */
-    private function calculateTimeOff(Carbon $start_time, Carbon $end_time)
+    function calculateTimeOff($start, $end)
     {
-        $total_work_hours = 0;
+        $start_time = Carbon::parse($start);
+        $end_time = Carbon::parse($end);
 
-        // Duyệt từng ngày trong khoảng thời gian
-        while ($start_time->lt($end_time)) {
-            $curr_day = $start_time->copy()->startOfDay();
-
-            // Nếu là ngày cuối tuần thì không tính
-            if ($curr_day->isWeekend()) {
-                $start_time->addDay();
-                continue;
-            }
-            $start_hour = max($curr_day->copy()->hour(self::WORK_START_HOUR), $start_time);
-            $end_hour = min($curr_day->copy()->hour(self::WORK_END_HOUR)->minute(30), $end_time);
-            $lunch_start = $curr_day->copy()->hour(self::LUNCH_START_HOUR);
-            $lunch_end = $curr_day->copy()->hour(self::LUNCH_END_HOUR);
-
-            // Nếu có thời gian làm việc trong buổi sáng
-            if ($start_hour->lt($lunch_start)) {
-                $morning_end = min($end_hour, $lunch_start);
-                $morning_hours = $morning_end->diffInMinutes($start_hour) / 60;
-                $total_work_hours += $morning_hours;
-            }
-
-            // Nếu có thời gian làm việc trong buổi chiều
-            if ($end_hour->gt($lunch_end)) {
-                $afternoon_start = max($start_hour, $lunch_end);
-                $afternoon_hours = $end_hour->diffInMinutes($afternoon_start) / 60;
-                $total_work_hours += $afternoon_hours;
-            }
-
-            $start_time->addDay();
+        if ($start_time->hour < 8) {
+            $start_time->setTime(8, 0, 0);
+        } elseif ($start_time->hour > 17 || ($start_time->hour == 17 && $start_time->minute > 30)) {
+            $start_time->addDay()->setTime(8, 0, 0);
         }
-        return $total_work_hours;
+
+        if ($end_time->hour > 17 || ($end_time->hour == 17 && $end_time->minute > 30)) {
+            $end_time->setTime(17, 30, 0);
+        } elseif ($end_time->hour < 8 || ($end_time->hour == 8 && $end_time->minute < 0)) {
+            $end_time->subDay()->setTime(17, 30, 0);
+        }
+
+        $off_days = $start_time->diffInDaysFiltered(function (Carbon $date) {
+                return !$date->isWeekend();
+            }, $end_time) + 1;
+
+        $off_hours = $off_days * 9.5;
+
+        if (!$start_time->isSameDay($end_time)) {
+            $start_off_hours = 0;
+            if (!$start_time->isWeekend()) {
+                $start_off_hours = $start_time->copy()->setTime(17, 30, 0)->diffInMinutes($start_time) / 60;
+            }
+
+            $end_off_hours = 0;
+            if (!$end_time->isWeekend()) {
+                $end_off_hours = $end_time->diffInMinutes($end_time->copy()->setTime(8, 0, 0)) / 60;
+            }
+
+            $off_hours -= ($start_off_hours + $end_off_hours);
+        }
+
+        return $off_hours;
     }
+
 
     /***
      * call calculate function
-     * @param Request $request
+     * @param $start_date
+     * @param $end_date
      * @return float|int
      */
     public function timeOff($start_date, $end_date)
@@ -152,5 +150,18 @@ class LeaveController extends Controller
         $start = Carbon::parse($start_date);
         $end = Carbon::parse($end_date);
         return $this->calculateTimeOff($start, $end);
+    }
+
+    /***
+     * get all leaves by userId
+     * @return \Illuminate\Http\JsonResponse|void
+     */
+    public function getLeavesByUserId()
+    {
+        if (Auth::user()) {
+            $user = Auth::user();
+            $leaves = Leaves::where('employee_id', $user->id)->get();
+            return response()->json(['leaves' => $leaves]);
+        }
     }
 }

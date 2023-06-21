@@ -13,6 +13,9 @@ class Employees extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const USER_ROLE = 1;
+    public const MANAGER_ROLE = 2;
+
     public function getJWTIdentifier()
     {
         return $this->getKey();
