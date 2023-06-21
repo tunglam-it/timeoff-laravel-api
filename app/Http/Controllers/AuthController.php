@@ -33,11 +33,11 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
             return response()->json([
-                'message' => 'Employee Created Successfully',
+                'message' => 'Đăng ký thành công',
                 'employees ' => $employees,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e, 'status' => $e->getCode()]);
+            return response()->json(['message' => $e, 'status' => $e->getCode()]);
         }
     }
 
@@ -51,7 +51,7 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
-                return response()->json(['error' => 'Invalid Credentials'], 401);
+                return response()->json(['message' => 'Email hoặc Password không chính xác'], 401);
             }
         } catch (JWTException $e) {
             return response()->json(['message' => 'Could not create token', 'status' => $e->getCode()]);

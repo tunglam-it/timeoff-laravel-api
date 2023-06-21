@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Leaves extends Model
 {
     use HasFactory;
+    public const APPROVE_STATUS = 1;
+
     /**
      * The attributes that are mass assignable.
      *

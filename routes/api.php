@@ -28,7 +28,7 @@ Route::group(['middleware' => 'jwt.auth'], function () {
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::get('/show/{id}', [EmployeesController::class, 'show']);
     Route::post('/change', [EmployeesController::class, 'changePassword']);// thay doi password
-    Route::get('/users', [EmployeesController::class, 'getUsers']); // filter
+    Route::get('/get-users',[EmployeesController::class,'index']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     //Router Leaves
@@ -37,11 +37,13 @@ Route::group(['middleware' => 'jwt.auth'], function () {
     Route::post('/leaves', [LeaveController::class, 'store']);
     Route::put('/leaves/{id}', [LeaveController::class, 'update']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
+    Route::get('/by-user-id',[LeaveController::class,'getLeavesByUserId']);
+    Route::get('/calc-time',[LeaveController::class,'calc_time']);
+
 });
 
 Route::group(['middleware' => ['jwt.auth', 'check']], function () {
     Route::delete('/delete/{id}', [EmployeesController::class, 'delete']);
-    Route::get('/get-users',[EmployeesController::class,'index']);
     Route::put('/update/{id}', [EmployeesController::class, 'update']);// cap nhat roles
 });
 
