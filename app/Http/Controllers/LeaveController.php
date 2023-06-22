@@ -2,21 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employees;
-use App\Models\Leaves;
+use App\Repositories\Employee\EmployeeRepository;
 use App\Repositories\Leave\LeaveRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Http\Resources\LeaveResources;
-use Illuminate\Support\Facades\Auth;
 
 class LeaveController extends Controller
 {
     protected $leaveRepo;
+    protected $employeeRepo;
 
-    public function __construct(LeaveRepository $leaveRepo)
+    public function __construct(LeaveRepository $leaveRepo, EmployeeRepository $employeeRepo)
     {
         $this->leaveRepo = $leaveRepo;
+        $this->employeeRepo = $employeeRepo;
     }
 
     /**
@@ -29,25 +28,7 @@ class LeaveController extends Controller
         $end_date = request()->input('end_date');
         $status = request()->input('status');
 
-        $leaves = Leaves::query();
-        if ($param) {
-            $leaves->whereHas('employees', function ($query) use ($param) {
-                $query->where('name', 'like', '%' . $param . '%');
-            });
-        }
-        if ($start_date && $end_date) {
-            $leaves->whereBetween('start_date', [$start_date, $end_date]);
-        }
-        if ($status) {
-            $leaves->where('status', $status);
-        }
-
-        $employees = $leaves->get();
-        if ($employees->isEmpty()) {
-            return response()->json(['message' => ' Leaves not found'], 404);
-        } else {
-            return LeaveResources::collection($employees);
-        }
+        $this->leaveRepo->searchFilter($param, $start_date, $end_date, $status);
     }
 
     /**
@@ -73,12 +54,7 @@ class LeaveController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        if ($request->status == Leaves::APPROVE_STATUS && $request->employee_id) {
-            $employee = Employees::findOrFail($request->employee_id);
-            $estimate = $this->leaveRepo->find($id)->estimate;
-            $total_time = $employee->total_time;
-            $employee->update(['total_time' => $total_time + $estimate]);
-        }
+        $this->employeeRepo->updateTotalTime($id);
         $leaves = $this->leaveRepo->update($id, $request->except('employee_id'));
         return $leaves;
     }
@@ -116,8 +92,8 @@ class LeaveController extends Controller
         }
 
         $off_days = $start_time->diffInDaysFiltered(function (Carbon $date) {
-                return !$date->isWeekend();
-            }, $end_time) + 1;
+            return !$date->isWeekend();
+        }, $end_time) + 1;
 
         $off_hours = $off_days * 9.5;
 
@@ -138,7 +114,6 @@ class LeaveController extends Controller
         return $off_hours;
     }
 
-
     /***
      * call calculate function
      * @param $start_date
@@ -158,10 +133,6 @@ class LeaveController extends Controller
      */
     public function getLeavesByUserId()
     {
-        if (Auth::user()) {
-            $user = Auth::user();
-            $leaves = Leaves::where('employee_id', $user->id)->get();
-            return response()->json(['leaves' => $leaves]);
-        }
+        $this->leaveRepo->getLeavesById(auth()->user()->id);
     }
 }
