@@ -53,23 +53,7 @@ class EmployeesController extends Controller
      */
     public function changePassword(Request $request)
     {
-        $user = Auth::user();
-
-        if (!Hash::check($request->oldPassword, $user->password)) {
-            return response()->json([
-                'message' => ' Password is incorrect'
-            ], 401);
-        }
-
-        if (Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'New password should not be the same as old password'
-            ], 422);
-        }
-
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
+        $this->employeesRepo->changePasswordUser();
 
         return response()->json([
             'message' => 'Password updated successfully'

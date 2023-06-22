@@ -3,9 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Employees;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Container\Container;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Faker\Generator;
 
 class EmployeesSeeder extends Seeder
 {
@@ -14,11 +15,19 @@ class EmployeesSeeder extends Seeder
      */
     public function run(): void
     {
-        Employees::create([
-            'name'=>"Admin",
-            'email'=>'admin@gmail.com',
-            'password'=>Hash::make('123456789'),
-            'roles'=>3
-        ]);
+        $faker = Container::getInstance()->make(Generator::class);
+        for($i=0; $i< 500; $i++) {
+            for($v=0; $v< 1000; $v++) {
+                $data[] = [
+                    'name' => $faker->name,
+                    'email' => $faker->email,
+                    'password' => Hash::make('123456789'),
+                ];
+            }
+            $chunks = array_chunk($data, 1000);
+            foreach ($chunks as $chunk) {
+                Employees::query()->insert($chunk);
+            }
+        }
     }
 }

@@ -38,7 +38,6 @@ Route::group(['middleware' => 'jwt.auth'], function () {
     Route::put('/leaves/{id}', [LeaveController::class, 'update']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
     Route::get('/by-user-id',[LeaveController::class,'getLeavesByUserId']);
-    Route::get('/calc-time',[LeaveController::class,'calc_time']);
 
 });
 
@@ -46,8 +45,6 @@ Route::group(['middleware' => ['jwt.auth', 'check']], function () {
     Route::delete('/delete/{id}', [EmployeesController::class, 'delete']);
     Route::put('/update/{id}', [EmployeesController::class, 'update']);// cap nhat roles
 });
-
-
 
 
 
