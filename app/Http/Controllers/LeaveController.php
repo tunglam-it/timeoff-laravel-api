@@ -28,7 +28,7 @@ class LeaveController extends Controller
         $end_date = request()->input('end_date');
         $status = request()->input('status');
 
-        $this->leaveRepo->searchFilter($param, $start_date, $end_date, $status);
+        return $this->leaveRepo->searchFilter($param, $start_date, $end_date, $status);
     }
 
     /**
@@ -133,6 +133,6 @@ class LeaveController extends Controller
      */
     public function getLeavesByUserId()
     {
-        $this->leaveRepo->getLeavesById(auth()->user()->id);
+        return $this->leaveRepo->getLeavesById(auth()->user()->id);
     }
 }
