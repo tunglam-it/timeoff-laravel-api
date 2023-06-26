@@ -15,17 +15,16 @@ class LeavesSeeder extends Seeder
     public function run(): void
     {
         $faker = Container::getInstance()->make(Generator::class);
-        for ($i = 0; $i < 500; $i++) {
-            for ($v = 0; $v < 1000; $v++) {
-                $data[] = [
-                    'employee_id' => $faker->randomNumber,
-                    'type' => $faker->numberBetween(1, 3),
-                    'start_date' => $faker->dateTimeThisMonth,
-                    'end_date' => $faker->dateTimeThisMonth,
-                    'reason' => $faker->realText,
-                    'estimate' => $faker->numberBetween(1, 100),
-                ];
-            }
+        for ($i = 0; $i < 2000; $i++) {
+            $data[] = [
+                'employee_id' => $faker->randomNumber,
+                'type' => $faker->numberBetween(1, 3),
+                'start_date' => $faker->dateTimeThisMonth,
+                'end_date' => $faker->dateTimeThisMonth,
+                'reason' => $faker->realText,
+                'estimate' => $faker->numberBetween(1, 100),
+            ];
+
             $chunks = array_chunk($data, 1000);
             foreach ($chunks as $chunk) {
                 Leaves::query()->insert($chunk);

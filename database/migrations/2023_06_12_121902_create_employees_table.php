@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email');
             $table->string('password');
-            $table->integer('roles')->nullable()->default(1);
+            $table->integer('roles')->default(1);
             $table->float('total_time')->default(0);
             $table->timestamps();
         });

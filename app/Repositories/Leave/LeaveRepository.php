@@ -5,6 +5,7 @@ namespace App\Repositories\Leave;
 use App\Http\Resources\LeaveResources;
 use App\Models\Leaves;
 use App\Repositories\BaseRepository;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class LeaveRepository extends BaseRepository implements LeaveRepositoryInterface
@@ -41,7 +42,7 @@ class LeaveRepository extends BaseRepository implements LeaveRepositoryInterface
             $leaves->where('status', $status);
         }
 
-        $employees = $leaves->get();
+        $employees = $leaves->paginate(5000);
         if ($employees->isEmpty()) {
             return response()->json(['message' => ' Leaves not found'], 404);
         } else {
